@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BLS Grounding Tool (Self-Administered)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Sky background ── -->
+<div id="sky-bg" aria-hidden="true">
+  <div id="sky-sun"></div>
+  <div class="cloud cld-xl" id="cloud-1"><div class="cloud-body"></div></div>
+  <div class="cloud cld-md" id="cloud-2"><div class="cloud-body"></div></div>
+  <div class="cloud cld-lg" id="cloud-3"><div class="cloud-body"></div></div>
+  <div class="cloud cld-sm" id="cloud-4"><div class="cloud-body"></div></div>
+  <div class="cloud cld-md" id="cloud-5"><div class="cloud-body"></div></div>
+</div>
+
+<!-- Phase progress header (fixed top, glassmorphism pill) -->
+<div id="phase-header">
+  <span class="phase-label" id="phase-label-text">PHASE 1: INTRO &amp; CONSENT</span>
+  <div class="phase-dots">
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+    <div class="phase-dot"></div>
+  </div>
+</div>
+
+<!-- ── Fixed globals ── -->
+<button id="stop-btn" class="btn btn-danger" onclick="triggerStop()">■ STOP</button>
+<div id="vis-toast">BLS paused — tab not focused</div>
+
+<!-- ── Grounding overlay ── -->
+<div id="grounding" role="dialog" aria-modal="true" aria-label="Grounding exercise">
+  <h2>You are safe. Take a breath.</h2>
+  <p>Let's bring you back to the present moment.</p>
+  <ul class="ground-list">
+    <li><strong>5</strong> things you can see around you right now</li>
+    <li><strong>4</strong> things you can physically feel or touch</li>
+    <li><strong>3</strong> sounds you can hear in your environment</li>
+    <li><strong>2</strong> scents you can notice (real or remembered)</li>
+    <li><strong>1</strong> taste you're aware of</li>
+  </ul>
+  <p style="font-size:.85rem; margin-bottom:28px;">
+    Feel the weight of your body. Notice your feet on the floor.<br>You are here, right now.
+  </p>
+  <button class="btn btn-secondary btn-sm" onclick="dismissGrounding()">I feel grounded — continue</button>
+  <button class="btn btn-success btn-sm mt8" onclick="goToBreathing()">Take me to the breathing exercise</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 1 — Intro
+══════════════════════════════════════════════════════ -->
+<section id="s-intro" class="screen active" aria-label="Introduction">
+  <div class="app-icon" aria-hidden="true">🧠</div>
+  <h1>BLS Grounding Tool</h1>
+  <p style="margin-bottom:6px; font-size:.88rem;">Self-Administered Bilateral Stimulation</p>
+  <p style="font-size:.8rem; margin-bottom:22px; color:var(--muted);">For relaxation and grounding — not therapy.</p>
+
+  <div class="disclaimer" role="note">
+    <p>This tool uses bilateral stimulation for <strong>relaxation only</strong>. It is not a substitute for EMDR therapy. If you have a diagnosed trauma disorder, use only with your therapist's knowledge. Stop immediately if you feel emotionally overwhelmed and contact a crisis line.</p>
+  </div>
+
+  <!-- Welcome-back card (shown when prior sessions are stored) -->
+  <div id="welcome-back" class="card" style="display:none;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <span style="font-size:1.2rem;">👋</span>
+      <span style="font-size:.95rem; font-weight:600; color:var(--text);">Welcome back!</span>
+    </div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+      <div class="welcome-stat">
+        <div class="welcome-stat-num" id="wb-sessions">—</div>
+        <div class="welcome-stat-lbl">sessions</div>
+      </div>
+      <div class="welcome-stat">
+        <div class="welcome-stat-num" id="wb-last-sud">—</div>
+        <div class="welcome-stat-lbl">last SUD</div>
+      </div>
+      <div class="welcome-stat">
+        <div class="welcome-stat-num" id="wb-last-voc">—</div>
+        <div class="welcome-stat-lbl">last VOC</div>
+      </div>
+    </div>
+    <p style="font-size:.78rem; margin:8px 0 0; text-align:left; color:var(--muted);">Last session: <span id="wb-last-date">—</span></p>
+  </div>
+
+  <div class="card">
+    <ul class="how-list">
+      <li><span class="step">1</span> Choose and settle into a Safe Place scene</li>
+      <li><span class="step">2</span> Rate your current distress (SUD 0–10)</li>
+      <li><span class="step">3</span> Follow the moving dot with your eyes</li>
+      <li><span class="step">4</span> Rate your positive belief (VOC 1–7)</li>
+      <li><span class="step">5</span> Scan your body for residual sensation</li>
+      <li><span class="step">6</span> Close with a breathing exercise</li>
+    </ul>
+  </div>
+
+  <label class="consent-row" for="consent">
+    <input type="checkbox" id="consent">
+    <label for="consent">
+      I consent to logging the session timestamp and my SUD/VOC scores. No memory content is ever stored or transmitted.
+    </label>
+  </label>
+
+  <button class="btn btn-primary" onclick="startSession()">Begin Session</button>
+
+  <p style="font-size:.8rem; margin-top:4px;">
+    Tap outside the dot to pause BLS at any time.<br>
+    Use STOP or switch tabs to halt immediately.
+  </p>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 2 — Safe Place  (required gate before SUD/BLS)
+══════════════════════════════════════════════════════ -->
+<section id="s-safe" class="screen" aria-label="Safe place selection">
+  <h2 style="margin-top:20px;">Find Your Safe Place</h2>
+  <p style="margin-bottom:16px;">Choose a peaceful scene and spend a moment here before we begin. You can return to this place any time.</p>
+
+  <!-- Thumbnails (6 scenes, 3×2 grid) -->
+  <div class="scene-grid phase-a" role="radiogroup" aria-label="Choose a scene">
+    <button class="scene-thumb active" id="thumb-ocean"    onclick="selectScene('ocean')"    aria-pressed="true"  aria-label="Ocean at dusk">
+      <div class="thumb-img" id="timg-ocean"></div>
+      <span class="thumb-label">Ocean</span>
+    </button>
+    <button class="scene-thumb"        id="thumb-forest"   onclick="selectScene('forest')"   aria-pressed="false" aria-label="Forest glade">
+      <div class="thumb-img" id="timg-forest"></div>
+      <span class="thumb-label">Forest</span>
+    </button>
+    <button class="scene-thumb"        id="thumb-mountain" onclick="selectScene('mountain')" aria-pressed="false" aria-label="Mountain meadow">
+      <div class="thumb-img" id="timg-mountain"></div>
+      <span class="thumb-label">Mountain</span>
+    </button>
+    <button class="scene-thumb"        id="thumb-lake"     onclick="selectScene('lake')"     aria-pressed="false" aria-label="Mountain lake">
+      <div class="thumb-img" id="timg-lake"></div>
+      <span class="thumb-label">Lake</span>
+    </button>
+    <button class="scene-thumb"        id="thumb-beach"    onclick="selectScene('beach')"    aria-pressed="false" aria-label="Tropical beach">
+      <div class="thumb-img" id="timg-beach"></div>
+      <span class="thumb-label">Beach</span>
+    </button>
+    <button class="scene-thumb"        id="thumb-night"    onclick="selectScene('night')"    aria-pressed="false" aria-label="Starry night sky">
+      <div class="thumb-img" id="timg-night"></div>
+      <span class="thumb-label">Night</span>
+    </button>
+  </div>
+
+  <!-- Large viewer -->
+  <div class="scene-viewer" id="scene-viewer" aria-hidden="true"></div>
+
+  <!-- Caption -->
+  <div class="scene-caption-row">
+    <span id="scene-name">Ocean at Dusk</span>
+    <span id="scene-caption">Let the rhythm of the waves bring you stillness.</span>
+  </div>
+
+  <!-- ── Phase A: new resource-installation fields ── -->
+
+  <!-- Dot color picker -->
+  <div class="card phase-a">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:12px;">🎨 BLS dot colour</p>
+    <div class="color-swatch-row" role="radiogroup" aria-label="Dot colour">
+      <button class="color-swatch selected" data-color="blue"   style="background:#6C5CE7;" onclick="setDotColor('blue')"   aria-label="Blue"   title="Blue"></button>
+      <button class="color-swatch"          data-color="green"  style="background:#10B981;" onclick="setDotColor('green')"  aria-label="Green"  title="Green"></button>
+      <button class="color-swatch"          data-color="purple" style="background:#9333EA;" onclick="setDotColor('purple')" aria-label="Purple" title="Purple"></button>
+      <button class="color-swatch"          data-color="amber"  style="background:#F59E0B;" onclick="setDotColor('amber')"  aria-label="Amber"  title="Amber"></button>
+      <button class="color-swatch"          data-color="teal"   style="background:#14B8A6;" onclick="setDotColor('teal')"   aria-label="Teal"   title="Teal"></button>
+    </div>
+  </div>
+
+  <!-- Ambient sound + guided imagery -->
+  <div class="card phase-a">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:10px;">🌊 Soundscape <em style="color:var(--muted); font-size:.78rem">(generated on-device, no internet)</em></p>
+    <div class="ambient-row">
+      <select id="ambient-select" class="ambient-select" onchange="onAmbientChange()" aria-label="Choose ambient sound">
+        <option value="silent">🔇 Silent (default)</option>
+        <option value="ocean">🌊 Ocean waves</option>
+        <option value="rain">🌧️ Forest rain</option>
+        <option value="fire">🔥 Fireplace</option>
+        <option value="piano">🎵 Soft piano drone</option>
+      </select>
+      <button id="ambient-mute-btn" class="btn btn-secondary" style="width:auto;min-height:44px;padding:8px 14px;margin-bottom:0;flex-shrink:0;"
+              data-muted="0" onclick="toggleAmbientMute()" aria-label="Mute ambient sound">🔇</button>
+    </div>
+    <div class="slider-block" style="margin-top:4px;">
+      <div class="slider-header">
+        <span class="label" style="font-size:.82rem;">Volume</span>
+        <span class="slider-readout" id="ambient-vol-out" style="font-size:1.1rem;">60%</span>
+      </div>
+      <input type="range" id="ambient-vol" min="0" max="100" value="60" step="1" oninput="updateAmbientVolume()" aria-label="Ambient volume">
+    </div>
+    <p id="imagery-text" style="display:none;"></p>
+  </div>
+
+  <!-- Breathing pacer (4s/4s) -->
+  <div class="card phase-a" style="text-align:center;">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:10px;">🫁 Breathing pacer</p>
+    <div id="safe-breath-wrap">
+      <div id="safe-breath-ring"></div>
+      <div id="safe-breath-label">4 s in · 4 s out</div>
+    </div>
+  </div>
+
+  <!-- Voice guidance -->
+  <button class="btn btn-secondary phase-a" id="voice-btn" onclick="toggleGuidance()">
+    <span class="icon" id="voice-icon">🔊</span>
+    <span id="voice-label">Hear calming guidance&nbsp;<small style="font-weight:400;opacity:.7">(optional)</small></span>
+  </button>
+  <p id="voice-note" style="display:none;"></p>
+
+  <!-- Safe-place description -->
+  <div class="card phase-a">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:8px;">
+      Describe your safe place (real or imagined) — <em>not stored or transmitted</em>
+    </p>
+    <textarea id="safe-description" placeholder="What do you notice here? What sounds, colours, or sensations make you feel safe?" oninput="checkTraumaWords()"></textarea>
+
+    <!-- Trauma word warning (hidden until triggered) -->
+    <div id="trauma-warn" style="display:none;">
+      <p>Your description contains words that may be distressing. If this is your intended safe place, please confirm below to continue. Otherwise, consider describing a different place.</p>
+      <div class="trauma-confirm-row">
+        <input type="checkbox" id="trauma-confirm">
+        <label for="trauma-confirm">I understand — this place still feels safe to me</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image upload -->
+  <div class="card phase-a">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:10px;">
+      Add a personal image of your safe place <em style="color:var(--muted)">(optional — stays on your device)</em>
+    </p>
+    <label class="safe-img-label">
+      📷 Choose image
+      <input type="file" id="safe-img-input" accept="image/*" onchange="handleImageUpload(event)">
+      <span id="safe-img-filename">None</span>
+    </label>
+  </div>
+
+  <!-- Anchor word -->
+  <div class="card phase-a">
+    <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:8px;">
+      Anchor word — one word that captures this feeling of safety
+    </p>
+    <input type="text" id="safe-anchor" maxlength="20" placeholder="e.g. peace, ocean, home" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <!-- Safe-place cue card -->
+  <div class="safe-cue phase-a" role="note">
+    <p>Notice what makes this place feel safe. Is it the light, the sounds, the sense of space? Let your body soften as you take it in.</p>
+  </div>
+
+  <!-- Crisis resources (collapsible) -->
+  <div class="crisis-wrap phase-a" id="crisis-wrap">
+    <button class="crisis-toggle" id="crisis-toggle"
+            onclick="toggleCrisis()" aria-expanded="false" aria-controls="crisis-body">
+      <span class="crisis-icon" aria-hidden="true">🆘</span>
+      <span>Crisis resources</span>
+      <span class="crisis-chevron" id="crisis-chevron" aria-hidden="true">›</span>
+    </button>
+    <div id="crisis-body" hidden>
+      <p class="crisis-emergency">
+        <strong>Immediate danger?</strong> Call emergency services — 911 (US) · 999 (UK) · 000 (AU) · 112 (EU).
+      </p>
+      <div class="crisis-select-row">
+        <label for="country-sel">Country</label>
+        <select id="country-sel" class="crisis-select" onchange="updateCrisisLines()"
+                aria-label="Select your country"></select>
+      </div>
+      <ul class="crisis-lines" id="crisis-lines" aria-live="polite" aria-atomic="true"></ul>
+    </div>
+  </div>
+
+  <!-- Phase A proceed button -->
+  <button class="btn btn-primary phase-a" id="safe-proceed-btn" onclick="safePhaseANext()">
+    Set up my safe place →
+  </button>
+  <button class="btn btn-ghost phase-a" onclick="returnHome()">← Exit to Home</button>
+
+  <!-- ── Phase B: slow BLS practice ── -->
+
+  <!-- Emergency banner (shown only when STOP redirected here) -->
+  <div id="safe-emergency-banner" class="phase-b" style="display:none;">
+    <h3>■ Session paused</h3>
+    <p>You've returned to your safe place. The slow dot below will help you re-regulate. Take your time — confirm calm when you're ready.</p>
+  </div>
+
+  <!-- Anchor word display -->
+  <div id="safe-anchor-display" class="phase-b"></div>
+
+  <!-- Separate slow BLS track -->
+  <div id="safe-bls-wrap" class="phase-b">
+    <div id="safe-bls-track"><div id="safe-bls-dot"></div></div>
+  </div>
+
+  <!-- Countdown -->
+  <p id="safe-countdown" class="phase-b">
+    Follow the green dot… confirm calm after <span id="safe-countdown-num">30</span>s
+  </p>
+
+  <!-- Confirm / Retry -->
+  <button id="safe-confirm-btn" class="btn btn-success phase-b" disabled onclick="confirmCalmness()">
+    I feel calm and safe
+  </button>
+  <button id="safe-retry-btn" class="btn btn-secondary phase-b" style="display:none" onclick="safeRetry()">
+    Not yet — try again
+  </button>
+
+  <!-- Collapsible 5-4-3-2-1 grounding within Phase B -->
+  <div id="safe-grounding-wrap" class="phase-b">
+    <button class="crisis-toggle" id="safe-ground-toggle"
+            onclick="toggleSafeGrounding()" aria-expanded="false" aria-controls="safe-ground-body">
+      <span class="crisis-icon" aria-hidden="true">🌿</span>
+      <span>5-4-3-2-1 grounding</span>
+      <span class="crisis-chevron" id="safe-ground-chevron" aria-hidden="true">›</span>
+    </button>
+    <div id="safe-ground-body" hidden>
+      <ul class="ground-list" style="padding: 0 16px 16px;">
+        <li><strong>5</strong> things you can see around you right now</li>
+        <li><strong>4</strong> things you can physically feel or touch</li>
+        <li><strong>3</strong> sounds you can hear in your environment</li>
+        <li><strong>2</strong> scents you can notice (real or remembered)</li>
+        <li><strong>1</strong> taste you're aware of</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 3 — SUD
+══════════════════════════════════════════════════════ -->
+<section id="s-sud" class="screen" aria-label="Distress rating">
+  <div style="margin-top:36px; width:100%;">
+    <h2>Before we begin</h2>
+    <p>Hold in mind the situation or feeling you want to work with — without narrating it. On a scale of 0–10, how distressing does it feel right now?</p>
+    <div class="card">
+      <div class="slider-block">
+        <div class="slider-header">
+          <span class="label">Subjective Units of Distress (SUD)</span>
+          <span class="slider-readout" id="sud-out" aria-live="polite">5</span>
+        </div>
+        <input type="range" id="sud-slider" min="0" max="10" value="5" step="1"
+               aria-label="SUD rating 0 to 10"
+               oninput="document.getElementById('sud-out').textContent=this.value">
+        <div class="range-ends">
+          <span>0<br>No distress</span>
+          <span>5</span>
+          <span class="right">10<br>Extreme distress</span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.85rem; margin-top:4px;">You don't need to share the content — just hold it silently and rate the feeling.</p>
+    <p id="sud-safe-error" style="display:none; color:var(--danger); font-size:.88rem; margin-bottom:8px;">
+      Complete Safe Place setup first — go back and confirm your calm.
+    </p>
+    <button class="btn btn-primary mt24" onclick="enterBLS()">Continue to BLS &rarr;</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 4 — BLS
+══════════════════════════════════════════════════════ -->
+<section id="s-bls" class="screen" aria-label="Bilateral stimulation">
+  <h2 style="margin-bottom:4px;">Follow the dot</h2>
+  <p style="margin-bottom:8px;">Move your eyes back and forth with the blue circle.</p>
+
+  <div id="bls-wrap" role="presentation" aria-hidden="true">
+    <div id="bls-track"><div id="bls-dot"></div></div>
+  </div>
+
+  <div id="bls-status" aria-live="polite">
+    <div class="status-dot"></div>
+    <span id="bls-status-text">Running — tap outside dot to pause</span>
+  </div>
+
+  <div class="card mt16">
+    <div class="slider-block">
+      <div class="slider-header">
+        <span class="label">Speed per cycle</span>
+        <span class="slider-readout" id="speed-out" aria-live="polite">2.0s</span>
+      </div>
+      <input type="range" id="speed-slider" min="0.5" max="5" value="2" step="0.1"
+             aria-label="BLS speed in seconds per cycle" oninput="onSpeedChange()">
+      <div class="range-ends">
+        <span>Fast (0.5s)</span>
+        <span class="right">Slow (5s)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bilateral audio card -->
+  <div class="card mt8" id="bls-audio-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <span style="font-size:.9rem; color:var(--text); font-weight:600;">Bilateral Audio</span>
+      <span style="font-size:.75rem; color:var(--muted);">🎧 Use headphones</span>
+    </div>
+    <p id="audio-warn" style="font-size:.78rem; color:var(--warn); text-align:center; margin-bottom:10px; padding:8px; background:rgba(224,168,92,.08); border-radius:8px; line-height:1.55;">
+      ⚠️ If bilateral sounds cause anxiety or dissociation, turn audio OFF immediately and use visual BLS only. Contact a crisis line if symptoms persist.
+    </p>
+    <button class="btn btn-secondary" id="audio-toggle-btn" onclick="toggleBilateralAudio()" style="margin-bottom:10px;">
+      🎵 Bilateral Audio OFF
+    </button>
+    <div class="slider-block">
+      <div class="slider-header">
+        <span class="label" style="font-size:.85rem;">Volume</span>
+        <span class="slider-readout" id="audio-vol-out" style="font-size:1.2rem;">40%</span>
+      </div>
+      <input type="range" id="audio-vol" min="0" max="100" value="40" step="1"
+             aria-label="Bilateral audio volume" oninput="updateBilateralVolume()">
+      <div class="range-ends"><span>0%</span><span class="right">100%</span></div>
+    </div>
+    <p id="audio-fallback" style="display:none; font-size:.8rem; color:var(--danger); text-align:center; margin-top:6px; margin-bottom:0;">
+      Web Audio API not available on this browser — bilateral audio unavailable.
+    </p>
+  </div>
+
+  <button class="btn btn-secondary mt8" onclick="endSet()">End Set &amp; Rate →</button>
+
+  <!-- Cooldown overlay — shown for 5 minutes after emergency STOP -->
+  <div id="bls-cooldown" role="status" aria-live="polite">
+    <div id="bls-cooldown-word"></div>
+    <div id="bls-cooldown-timer"></div>
+    <p style="font-size:.82rem; color:var(--muted); text-align:center;">
+      BLS resumes automatically when the timer expires.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 5 — VOC
+══════════════════════════════════════════════════════ -->
+<section id="s-voc" class="screen" aria-label="Positive cognition rating">
+  <div style="margin-top:36px; width:100%;">
+    <h2>After the set</h2>
+    <p>Think of a positive belief about yourself (e.g., "I am safe", "I handled it", "I am worthy"). From 1–7, how true does that feel in your body right now?</p>
+    <div class="card">
+      <div class="slider-block">
+        <div class="slider-header">
+          <span class="label">Validity of Cognition (VOC)</span>
+          <span class="slider-readout" id="voc-out" aria-live="polite">4</span>
+        </div>
+        <input type="range" id="voc-slider" min="1" max="7" value="4" step="1"
+               aria-label="VOC rating 1 to 7"
+               oninput="document.getElementById('voc-out').textContent=this.value">
+        <div class="range-ends">
+          <span>1<br>Completely false</span>
+          <span>4</span>
+          <span class="right">7<br>Completely true</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary mt24" onclick="enterBodyScan()">Continue to Body Scan &rarr;</button>
+    <button class="btn btn-secondary" onclick="anotherSet()">← Another Set</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 6 — Body Scan
+══════════════════════════════════════════════════════ -->
+<section id="s-scan" class="screen" aria-label="Body scan">
+  <div style="margin-top:16px; text-align:center; width:100%;">
+    <h2>Body Scan</h2>
+    <p>Gently scan your body from head to toe. Tap any area where you notice tension, sensation, or residual feeling.</p>
+
+    <div id="scan-wrap">
+      <svg id="body-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Interactive body diagram — tap areas to mark sensations"></svg>
+      <div id="scan-tags-wrap">
+        <p id="scan-no-tags">No areas marked — tap the figure above.</p>
+        <div id="scan-tags"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:8px; font-weight:600;">
+        Notes <em style="font-weight:400; color:var(--muted); font-size:.78rem">(not saved — for reflection only)</em>
+      </p>
+      <textarea id="scan-notes" placeholder="What did you notice? Tightness, warmth, numbness, tingling?"></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="enterClosure()">Continue to Closure &rarr;</button>
+    <button class="btn btn-ghost" onclick="backToVOC()">← Back to VOC</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 7 — Closure / Breathing
+══════════════════════════════════════════════════════ -->
+<section id="s-closure" class="screen" aria-label="Breathing closure">
+  <div style="margin-top:16px; text-align:center; width:100%;">
+    <h2>Closing the session</h2>
+    <p>Let's end by returning to your body and breath.</p>
+    <div id="breath-wrap" aria-hidden="true">
+      <div id="breath-ring"></div>
+      <div id="breath-text">Breathe in...</div>
+      <div id="breath-hint">4 seconds in · 4 seconds out</div>
+    </div>
+    <button class="btn btn-success" onclick="finishSession()">Complete Session</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 7 — Summary
+══════════════════════════════════════════════════════ -->
+<section id="s-summary" class="screen" aria-label="Session summary">
+  <div style="margin-top:40px; width:100%;">
+    <div class="app-icon" aria-hidden="true">✓</div>
+    <h2>Session Complete</h2>
+    <p>Well done for taking care of yourself today.</p>
+    <div class="card" id="sum-card" style="display:none;">
+      <div class="sum-row">
+        <span class="lbl">Session time</span><span class="val" id="sum-time">—</span>
+      </div>
+      <div class="sum-row">
+        <span class="lbl">SUD before</span><span class="val" id="sum-sud">—</span>
+      </div>
+      <div class="sum-row">
+        <span class="lbl">VOC after</span><span class="val" id="sum-voc">—</span>
+      </div>
+      <div class="sum-row">
+        <span class="lbl">VOC strength</span><span class="val" id="sum-delta">—</span>
+      </div>
+    </div>
+
+    <!-- Progress history chart (shown when 2+ sessions logged) -->
+    <div class="card" id="hist-card" style="display:none; margin-top:10px;">
+      <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:10px; font-weight:600;">
+        📊 Progress — last <span id="hist-count">0</span> sessions
+      </p>
+      <div class="hist-chart" id="hist-chart"></div>
+      <div class="hist-legend">
+        <span class="hist-legend-dot hist-sud-dot"></span>
+        <span style="margin-right:12px;">SUD (distress)</span>
+        <span class="hist-legend-dot hist-voc-dot"></span>
+        <span>VOC (belief)</span>
+      </div>
+    </div>
+
+    <!-- Session journal -->
+    <div class="card" style="margin-top:10px;">
+      <p style="font-size:.85rem; color:var(--text); text-align:left; margin-bottom:8px; font-weight:600;">
+        📝 Session notes
+      </p>
+      <textarea id="journal-entry" placeholder="What did you notice? How are you feeling now? Any insights from this session?"></textarea>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="saveJournal()">Save notes to device</button>
+      <p id="journal-saved-msg" style="display:none; font-size:.8rem; color:var(--success); text-align:center; margin:6px 0 0;">Saved ✓</p>
+    </div>
+
+    <p style="font-size:.82rem; margin-top:8px;">
+      If distress remains high, please reach out to a mental health professional or trained EMDR therapist.
+    </p>
+    <button class="btn btn-primary mt24" onclick="reset()">← Back to Home</button>
+  </div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
